@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dad & Daughter Call</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    video {
+      width: 45%;
+      margin: 10px;
+      background: black;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 15px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+    #blueBtn { background-color: #3498db; }
+    #pinkBtn { background-color: #e91e63; }
+  </style>
+</head>
+<body>
+  <h2>Dad & Daughter Video Call 💙💖</h2>
+  <video id="localVideo" autoplay playsinline muted></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+  <br />
+  <button id="blueBtn">Dad (Blue)</button>
+  <button id="pinkBtn">Daughter (Pink)</button>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const blueBtn = document.getElementById('blueBtn');
+    const pinkBtn = document.getElementById('pinkBtn');
+
+    const socket = io("wss://your-signaling-server.com"); // Replace this!
+    let pc, localStream;
+
+    async function start(isCaller) {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+
+      pc = new RTCPeerConnection();
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+      pc.ontrack = (event) => remoteVideo.srcObject = event.streams[0];
+      pc.onicecandidate = (event) => {
+        if (event.candidate) socket.emit('candidate', event.candidate);
+      };
+
+      socket.on('candidate', async candidate => {
+        if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      });
+
+      socket.on('offer', async offer => {
+        if (!isCaller) {
+          await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit('answer', answer);
+        }
+      });
+
+      socket.on('answer', async answer => {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      });
+
+      if (isCaller) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('offer', offer);
+      }
+    }
+
+    blueBtn.onclick = () => start(true);  // Dad starts the call
+    pinkBtn.onclick = () => start(false); // Daughter answers
+  </script>
+</body>
+</html>
