@@ -43,7 +43,7 @@
     const blueBtn = document.getElementById('blueBtn');
     const pinkBtn = document.getElementById('pinkBtn');
 
-    const socket = io("wss://your-signaling-server.com"); // Replace this!
+    const socket = io(" https://dylanjryan.github.io/dadaandkhlo/"); // Replace this!
     let pc, localStream;
 
     async function start(isCaller) {
