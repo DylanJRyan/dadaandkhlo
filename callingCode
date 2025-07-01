@@ -36,7 +36,7 @@
   <button id="blueBtn">Dad (Blue)</button>
   <button id="pinkBtn">Daughter (Pink)</button>
 
-  <script src="https://dylanjryan.github.io/dadaandkhlo/"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
