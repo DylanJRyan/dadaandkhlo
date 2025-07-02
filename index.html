@@ -2,25 +2,24 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dad & Daughter Call</title>
+  <title>Dad & Daughter Video Chat</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       text-align: center;
-      background: #f0f0f0;
-      padding: 20px;
+      background: #fafafa;
     }
     video {
       width: 45%;
       margin: 10px;
-      background: black;
+      background: #000;
     }
     button {
-      padding: 10px 20px;
+      padding: 12px 24px;
+      margin: 12px;
       font-size: 16px;
-      margin: 15px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       color: white;
       cursor: pointer;
     }
@@ -29,7 +28,7 @@
   </style>
 </head>
 <body>
-  <h2>Dad & Daughter Video Call 💙💖</h2>
+  <h2>Dad 💙 & Daughter 💖 Video Call</h2>
   <video id="localVideo" autoplay playsinline muted></video>
   <video id="remoteVideo" autoplay playsinline></video>
   <br />
@@ -38,12 +37,15 @@
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const blueBtn = document.getElementById('blueBtn');
-    const pinkBtn = document.getElementById('pinkBtn');
+    const ROOM = "family-room";
+    const socket = io("wss://your-signaling-server.com"); // ← Replace this with your server!
+    socket.emit("join", ROOM);
 
-    const socket = io(" https://dylanjryan.github.io/dadaandkhlo/"); // Replace this!
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    const blueBtn = document.getElementById("blueBtn");
+    const pinkBtn = document.getElementById("pinkBtn");
+
     let pc, localStream;
 
     async function start(isCaller) {
@@ -53,37 +55,40 @@
       pc = new RTCPeerConnection();
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-      pc.ontrack = (event) => remoteVideo.srcObject = event.streams[0];
       pc.onicecandidate = (event) => {
-        if (event.candidate) socket.emit('candidate', event.candidate);
+        if (event.candidate) socket.emit("candidate", { room: ROOM, candidate: event.candidate });
       };
 
-      socket.on('candidate', async candidate => {
-        if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      pc.ontrack = (event) => {
+        remoteVideo.srcObject = event.streams[0];
+      };
+
+      socket.on("candidate", ({ candidate }) => {
+        pc.addIceCandidate(new RTCIceCandidate(candidate));
       });
 
-      socket.on('offer', async offer => {
+      socket.on("offer", async ({ offer }) => {
         if (!isCaller) {
           await pc.setRemoteDescription(new RTCSessionDescription(offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          socket.emit('answer', answer);
+          socket.emit("answer", { room: ROOM, answer });
         }
       });
 
-      socket.on('answer', async answer => {
+      socket.on("answer", async ({ answer }) => {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
       });
 
       if (isCaller) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        socket.emit('offer', offer);
+        socket.emit("offer", { room: ROOM, offer });
       }
     }
 
-    blueBtn.onclick = () => start(true);  // Dad starts the call
-    pinkBtn.onclick = () => start(true); // Daughter answers
+    blueBtn.onclick = () => start(true);
+    pinkBtn.onclick = () => start(false);
   </script>
 </body>
 </html>
